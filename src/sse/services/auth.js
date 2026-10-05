@@ -24,6 +24,18 @@ function getConnectionPlan(connection) {
   return value ? String(value).trim().toLowerCase() : "unknown";
 }
 
+function modelMatchesBlock(model, pattern) {
+  const value = String(pattern || "").trim();
+  if (!value) return false;
+  if (value.endsWith("*")) return model.startsWith(value.slice(0, -1));
+  return model === value;
+}
+
+function isModelBlocked(settings, connection, model) {
+  const rules = settings?.modelAccountBlocks?.[connection.id];
+  return Array.isArray(rules) && rules.some((pattern) => modelMatchesBlock(model, pattern));
+}
+
 function githubMonthlyResetMs(status, errorText, provider) {
   if (resolveProviderId(provider) !== "github" || Number(status) !== 402) return null;
   if (!String(errorText || "").toLowerCase().includes(GITHUB_MONTHLY_USAGE_LIMIT)) return null;
@@ -94,11 +106,13 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     // Antigravity quota cache is lazy: only populated after that account returns 409/429.
     const isAntigravity = providerId === "antigravity";
     const antigravityQuotaCache = isAntigravity && model ? getAntigravityQuotaCache() : null;
+    const settings = await getSettings();
 
     // Filter out model-locked, excluded, and Antigravity quota-exhausted connections.
     const availableConnections = connections.filter(c => {
       if (excludeSet.has(c.id)) return false;
       if (isModelLockActive(c, model)) return false;
+      if (model && isModelBlocked(settings, c, model)) return false;
       const enabled = c.providerSpecificData?.enabledModels;
       if (providerId === "codex" && Array.isArray(enabled) && enabled.length && requestedModel && !enabled.includes(requestedModel)) return false;
       // Antigravity: skip if live quota exhausted for this model
@@ -149,7 +163,6 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       return null;
     }
 
-    const settings = await getSettings();
     // Prefer the configured model pool. This is intentionally soft: when every
     // mapped account is locked, excluded, or unavailable, retain normal provider
     // fallback so a model request can still succeed.

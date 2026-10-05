@@ -8,6 +8,7 @@ export default function ModelAccountPoolsCard({ providerId, models = [], connect
   const [selectedModel, setSelectedModel] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectedPlans, setSelectedPlans] = useState([]);
+  const [blockedModels, setBlockedModels] = useState({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -16,6 +17,7 @@ export default function ModelAccountPoolsCard({ providerId, models = [], connect
   useEffect(() => {
     fetch("/api/settings", { cache: "no-store" }).then((r) => r.json()).then((data) => {
       setSettings(data || {});
+      setBlockedModels(Object.fromEntries(Object.entries(data?.modelAccountBlocks || {}).map(([id, values]) => [id, Array.isArray(values) ? values.join("\n") : ""])));
       const pools = data?.modelAccountPools || {};
       const first = Object.keys(pools).find((key) => key.startsWith(`${providerId}/`));
       if (first) {
@@ -43,12 +45,13 @@ export default function ModelAccountPoolsCard({ providerId, models = [], connect
     const entries = [...selectedIds, ...selectedPlans.map((plan) => `plan:${plan}`)];
     if (entries.length) pools[key] = entries;
     else delete pools[key];
+    const blocks = Object.fromEntries(Object.entries(blockedModels).map(([id, text]) => [id, String(text).split(/\r?\n/).map((v) => v.trim()).filter(Boolean)]).filter(([, values]) => values.length));
     try {
-      const res = await fetch("/api/settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelAccountPools: pools }) });
+      const res = await fetch("/api/settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelAccountPools: pools, modelAccountBlocks: blocks }) });
       if (!res.ok) throw new Error("save failed");
       const next = await res.json();
       setSettings(next);
-      setMessage(selectedIds.length ? "Đã lưu account pool." : "Đã xóa pool, router sẽ dùng account mặc định.");
+      setMessage("Đã lưu rule chặn model theo account/plan.");
     } catch { setMessage("Không thể lưu cấu hình."); }
     finally { setSaving(false); }
   };
@@ -78,10 +81,7 @@ export default function ModelAccountPoolsCard({ providerId, models = [], connect
           {selectedModel && <>
           <div className="rounded-md border border-primary/20 bg-primary/5 p-3"><p className="mb-2 text-xs font-medium">Ưu tiên theo plan (áp dụng cho mọi account cùng plan)</p><div className="flex flex-wrap gap-2">{plans.map((plan) => <label key={plan} className="flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs"><input type="checkbox" checked={selectedPlans.includes(plan)} onChange={() => togglePlan(plan)} />{plan.toUpperCase()}</label>)}</div></div>
           <div className="grid gap-2 sm:grid-cols-2">
-            {connections.map((connection) => <label key={connection.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
-              <input type="checkbox" checked={selectedIds.includes(connection.id)} onChange={() => toggle(connection.id)} />
-              <span className="flex min-w-0 items-center gap-2"><span className="truncate">{connection.displayName || connection.name || connection.email || connection.id}</span><span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{getPlan(connection)}</span></span>
-            </label>)}
+            {connections.map((connection) => <div key={connection.id} className="rounded-md border border-border px-3 py-2 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={selectedIds.includes(connection.id)} onChange={() => toggle(connection.id)} /><span className="flex min-w-0 items-center gap-2"><span className="truncate">{connection.displayName || connection.name || connection.email || connection.id}</span><span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{getPlan(connection)}</span></span></label><textarea value={blockedModels[connection.id] || ""} onChange={(e) => setBlockedModels((prev) => ({ ...prev, [connection.id]: e.target.value }))} placeholder="Model bị chặn, mỗi dòng một rule\ngpt-6.0-luna\ngpt-5.*" className="mt-2 min-h-16 w-full rounded border border-border bg-background p-2 text-xs" /></div>)}
           </div></>}
           <div className="flex items-center gap-3">
             <Button size="sm" onClick={save} disabled={!selectedModel || saving}>{saving ? "Đang lưu..." : "Lưu account pool"}</Button>

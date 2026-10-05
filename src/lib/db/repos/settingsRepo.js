@@ -16,6 +16,7 @@ const DEFAULT_SETTINGS = {
   // Optional model -> connection-id pools. Selection falls back to all provider
   // connections when the configured pool has no currently usable members.
   modelAccountPools: {},
+  modelAccountBlocks: {},
   quotaVisibility: {},
   comboStrategy: "fallback",
   comboStickyRoundRobinLimit: 1,
