@@ -13,6 +13,9 @@ const DEFAULT_SETTINGS = {
   tailscaleUrl: "",
   stickyRoundRobinLimit: 3,
   providerStrategies: {},
+  // Optional model -> connection-id pools. Selection falls back to all provider
+  // connections when the configured pool has no currently usable members.
+  modelAccountPools: {},
   quotaVisibility: {},
   comboStrategy: "fallback",
   comboStickyRoundRobinLimit: 1,

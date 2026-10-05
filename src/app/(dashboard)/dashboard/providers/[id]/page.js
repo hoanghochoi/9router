@@ -24,6 +24,7 @@ import AddCustomModelModal from "./AddCustomModelModal";
 import BulkImportCodexModal from "./BulkImportCodexModal";
 import BulkImportGrokCliModal from "./BulkImportGrokCliModal";
 import CustomConfigCard from "./CustomConfigCard";
+import ModelAccountPoolsCard from "./ModelAccountPoolsCard";
 
 const ONE_BY_ONE_DELAY_MS = 1000;
 
@@ -1745,6 +1746,7 @@ export default function ProviderDetailPage() {
       )}
 
       {/* Per-provider user overrides (custom headers / connect timeout) */}
+      <ModelAccountPoolsCard providerId={providerId} models={[...models, ...customModels, ...kiloFreeModels]} connections={connections} />
       <CustomConfigCard providerId={providerId} />
 
       {/* Models */}

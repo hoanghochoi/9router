@@ -11,6 +11,14 @@ let selectionMutex = Promise.resolve();
 
 const GITHUB_MONTHLY_USAGE_LIMIT = "you've reached your additional usage limit for your plan";
 
+function getModelAccountPool(settings, providerId, model) {
+  if (!model || !settings?.modelAccountPools || typeof settings.modelAccountPools !== "object") return null;
+  const pools = settings.modelAccountPools;
+  const configured = pools[`${providerId}/${model}`] ?? pools[model];
+  if (!Array.isArray(configured)) return null;
+  return new Set(configured.filter((id) => typeof id === "string" && id.trim()));
+}
+
 function githubMonthlyResetMs(status, errorText, provider) {
   if (resolveProviderId(provider) !== "github" || Number(status) !== 402) return null;
   if (!String(errorText || "").toLowerCase().includes(GITHUB_MONTHLY_USAGE_LIMIT)) return null;
@@ -137,6 +145,19 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     }
 
     const settings = await getSettings();
+    // Prefer the configured model pool. This is intentionally soft: when every
+    // mapped account is locked, excluded, or unavailable, retain normal provider
+    // fallback so a model request can still succeed.
+    const modelPool = getModelAccountPool(settings, providerId, requestedModel);
+    const pooledConnections = modelPool
+      ? availableConnections.filter((c) => modelPool.has(c.id))
+      : [];
+    const selectionConnections = pooledConnections.length > 0 ? pooledConnections : availableConnections;
+    if (modelPool && pooledConnections.length > 0) {
+      log.debug("AUTH", `${provider} | model pool ${requestedModel}: ${pooledConnections.length}/${modelPool.size} usable; fallback disabled while pool has capacity`);
+    } else if (modelPool) {
+      log.debug("AUTH", `${provider} | model pool ${requestedModel}: no usable mapped accounts; falling back to provider pool`);
+    }
     // Per-provider strategy overrides global setting
     const providerOverride = (settings.providerStrategies || {})[providerId] || {};
     const strategy = providerOverride.fallbackStrategy || settings.fallbackStrategy || "fill-first";
@@ -144,7 +165,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     let connection;
     // Pin to preferred connection if specified and available
     if (preferredConnectionId) {
-      connection = availableConnections.find((c) => c.id === preferredConnectionId);
+      connection = selectionConnections.find((c) => c.id === preferredConnectionId);
       if (connection) {
         log.info("AUTH", `${provider} | pinned to ${connection.id?.slice(0, 8)} (${connection.name || connection.email || "unnamed"})`);
       }
@@ -155,7 +176,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       const stickyLimit = providerOverride.stickyRoundRobinLimit || settings.stickyRoundRobinLimit || 3;
 
       // Sort by lastUsed (most recent first) to find current candidate
-      const byRecency = [...availableConnections].sort((a, b) => {
+      const byRecency = [...selectionConnections].sort((a, b) => {
         if (!a.lastUsedAt && !b.lastUsedAt) return (a.priority || 999) - (b.priority || 999);
         if (!a.lastUsedAt) return 1;
         if (!b.lastUsedAt) return -1;
@@ -175,7 +196,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
         });
       } else {
         // Pick the least recently used (excluding current if possible)
-        const sortedByOldest = [...availableConnections].sort((a, b) => {
+        const sortedByOldest = [...selectionConnections].sort((a, b) => {
           if (!a.lastUsedAt && !b.lastUsedAt) return (a.priority || 999) - (b.priority || 999);
           if (!a.lastUsedAt) return -1;
           if (!b.lastUsedAt) return 1;
@@ -192,7 +213,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       }
     } else {
       // Default: fill-first (already sorted by priority in getProviderConnections)
-      connection = availableConnections[0];
+      connection = selectionConnections[0];
     }
 
     const resolvedProxy = await resolveConnectionProxyConfig(connection.providerSpecificData || {});
