@@ -7,6 +7,7 @@ export default function ModelAccountPoolsCard({ providerId, models = [], connect
   const [settings, setSettings] = useState({});
   const [selectedModel, setSelectedModel] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedPlans, setSelectedPlans] = useState([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -28,7 +29,9 @@ export default function ModelAccountPoolsCard({ providerId, models = [], connect
   useEffect(() => {
     const key = `${providerId}/${selectedModel}`;
     const ids = settings.modelAccountPools?.[key];
-    setSelectedIds(Array.isArray(ids) ? ids : []);
+    const entries = Array.isArray(ids) ? ids : [];
+    setSelectedPlans(entries.filter((id) => id.startsWith("plan:")).map((id) => id.slice(5)));
+    setSelectedIds(entries.filter((id) => !id.startsWith("plan:")));
   }, [providerId, selectedModel, settings.modelAccountPools]);
 
   const save = async () => {
@@ -37,7 +40,8 @@ export default function ModelAccountPoolsCard({ providerId, models = [], connect
     setMessage("");
     const key = `${providerId}/${selectedModel}`;
     const pools = { ...(settings.modelAccountPools || {}) };
-    if (selectedIds.length) pools[key] = selectedIds;
+    const entries = [...selectedIds, ...selectedPlans.map((plan) => `plan:${plan}`)];
+    if (entries.length) pools[key] = entries;
     else delete pools[key];
     try {
       const res = await fetch("/api/settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelAccountPools: pools }) });
@@ -50,6 +54,8 @@ export default function ModelAccountPoolsCard({ providerId, models = [], connect
   };
 
   const toggle = (id) => setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  const plans = ["free", "plus", "pro", "team", "business", "enterprise", "unknown"];
+  const togglePlan = (plan) => setSelectedPlans((prev) => prev.includes(plan) ? prev.filter((x) => x !== plan) : [...prev, plan]);
   const getPlan = (connection) => {
     const value = connection.providerSpecificData?.chatgptPlanType || connection.providerSpecificData?.planType || connection.providerSpecificData?.plan;
     return value ? String(value).toUpperCase() : "UNKNOWN";
@@ -69,12 +75,14 @@ export default function ModelAccountPoolsCard({ providerId, models = [], connect
             <option value="">Chọn model...</option>
             {modelOptions.map((m) => <option key={m.id} value={m.id}>{m.name || m.id}</option>)}
           </select>
-          {selectedModel && <div className="grid gap-2 sm:grid-cols-2">
+          {selectedModel && <>
+          <div className="rounded-md border border-primary/20 bg-primary/5 p-3"><p className="mb-2 text-xs font-medium">Ưu tiên theo plan (áp dụng cho mọi account cùng plan)</p><div className="flex flex-wrap gap-2">{plans.map((plan) => <label key={plan} className="flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs"><input type="checkbox" checked={selectedPlans.includes(plan)} onChange={() => togglePlan(plan)} />{plan.toUpperCase()}</label>)}</div></div>
+          <div className="grid gap-2 sm:grid-cols-2">
             {connections.map((connection) => <label key={connection.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
               <input type="checkbox" checked={selectedIds.includes(connection.id)} onChange={() => toggle(connection.id)} />
               <span className="flex min-w-0 items-center gap-2"><span className="truncate">{connection.displayName || connection.name || connection.email || connection.id}</span><span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{getPlan(connection)}</span></span>
             </label>)}
-          </div>}
+          </div></>}
           <div className="flex items-center gap-3">
             <Button size="sm" onClick={save} disabled={!selectedModel || saving}>{saving ? "Đang lưu..." : "Lưu account pool"}</Button>
             {message && <span className="text-xs text-text-muted">{message}</span>}

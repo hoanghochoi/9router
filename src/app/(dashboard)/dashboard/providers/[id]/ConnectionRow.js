@@ -159,7 +159,7 @@ export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst
           {authIcon}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{displayName}</p>
+          <div className="flex min-w-0 items-center gap-2"><p className="text-sm font-medium truncate">{displayName}</p>{(connection.providerSpecificData?.chatgptPlanType || connection.providerSpecificData?.planType || connection.providerSpecificData?.plan) && <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{String(connection.providerSpecificData.chatgptPlanType || connection.providerSpecificData.planType || connection.providerSpecificData.plan).toUpperCase()}</span>}</div>
           {secondaryDisplayName && (
             <p className="text-xs text-text-muted truncate">{secondaryDisplayName}</p>
           )}

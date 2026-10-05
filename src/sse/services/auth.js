@@ -19,6 +19,11 @@ function getModelAccountPool(settings, providerId, model) {
   return new Set(configured.filter((id) => typeof id === "string" && id.trim()));
 }
 
+function getConnectionPlan(connection) {
+  const value = connection?.providerSpecificData?.chatgptPlanType || connection?.providerSpecificData?.planType || connection?.providerSpecificData?.plan;
+  return value ? String(value).trim().toLowerCase() : "unknown";
+}
+
 function githubMonthlyResetMs(status, errorText, provider) {
   if (resolveProviderId(provider) !== "github" || Number(status) !== 402) return null;
   if (!String(errorText || "").toLowerCase().includes(GITHUB_MONTHLY_USAGE_LIMIT)) return null;
@@ -150,7 +155,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     // fallback so a model request can still succeed.
     const modelPool = getModelAccountPool(settings, providerId, requestedModel);
     const pooledConnections = modelPool
-      ? availableConnections.filter((c) => modelPool.has(c.id))
+      ? availableConnections.filter((c) => modelPool.has(c.id) || modelPool.has(`plan:${getConnectionPlan(c)}`))
       : [];
     const selectionConnections = pooledConnections.length > 0 ? pooledConnections : availableConnections;
     if (modelPool && pooledConnections.length > 0) {
