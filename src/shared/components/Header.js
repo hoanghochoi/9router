@@ -17,6 +17,9 @@ import { translate } from "@/i18n/runtime";
 
 const getPageInfo = (pathname) => {
   if (!pathname) return { title: "", description: "", breadcrumbs: [] };
+  if (pathname === "/dashboard/model-account-pools") return {
+    title: "Model Account Pools", description: "Chọn account ưu tiên cho từng model", icon: "route", breadcrumbs: [],
+  };
 
   // Media provider detail: /dashboard/media-providers/[kind]/[id]
   const mediaDetailMatch = pathname.match(/\/media-providers\/([^/]+)\/([^/]+)$/);
