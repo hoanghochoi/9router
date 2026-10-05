@@ -50,6 +50,10 @@ export default function ModelAccountPoolsCard({ providerId, models = [], connect
   };
 
   const toggle = (id) => setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  const getPlan = (connection) => {
+    const value = connection.providerSpecificData?.chatgptPlanType || connection.providerSpecificData?.planType || connection.providerSpecificData?.plan;
+    return value ? String(value).toUpperCase() : "UNKNOWN";
+  };
 
   return (
     <Card>
@@ -68,7 +72,7 @@ export default function ModelAccountPoolsCard({ providerId, models = [], connect
           {selectedModel && <div className="grid gap-2 sm:grid-cols-2">
             {connections.map((connection) => <label key={connection.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
               <input type="checkbox" checked={selectedIds.includes(connection.id)} onChange={() => toggle(connection.id)} />
-              <span className="truncate">{connection.displayName || connection.name || connection.email || connection.id}</span>
+              <span className="flex min-w-0 items-center gap-2"><span className="truncate">{connection.displayName || connection.name || connection.email || connection.id}</span><span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{getPlan(connection)}</span></span>
             </label>)}
           </div>}
           <div className="flex items-center gap-3">
