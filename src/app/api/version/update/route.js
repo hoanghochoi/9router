@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import { killAppProcesses, spawnUpdaterAndExit } from "@/lib/appUpdater";
+import pkg from "../../../../../package.json" with { type: "json" };
 
 export async function POST() {
+  if (pkg.customBuild === true) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: `Custom build is protected. Run ${pkg.customUpdateCommand || "npm run update:custom"} to merge upstream and rebuild it.`,
+      },
+      { status: 409 },
+    );
+  }
   if (process.env.NODE_ENV !== "production") {
     return NextResponse.json(
       { success: false, message: "Update is only available in production build (9router CLI)" },

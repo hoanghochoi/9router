@@ -53,6 +53,15 @@ async function getLatestVersionCached() {
 }
 
 export async function GET() {
+  if (pkg.customBuild === true) {
+    return Response.json({
+      currentVersion: pkg.version,
+      latestVersion: null,
+      hasUpdate: false,
+      customBuild: true,
+      updateCommand: pkg.customUpdateCommand || "npm run update:custom",
+    });
+  }
   const latestVersion = await getLatestVersionCached();
   const currentVersion = pkg.version;
   const hasUpdate = latestVersion ? compareVersions(latestVersion, currentVersion) > 0 : false;

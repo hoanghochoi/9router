@@ -14,6 +14,7 @@
     "build:bun": "bun --bun next build --webpack",
     "start:bun": "bun ./.next/standalone/custom-server.js",
     "cli:pack": "npm --prefix cli run pack:cli",
+    "update:custom": "node scripts/update-custom.mjs",
     "cli:publish": "npm --prefix cli run publish:cli"
   },
   "dependencies": {
@@ -57,6 +58,8 @@
     "better-sqlite3": "^12.6.2"
   },
   "comment_better_sqlite3": "kept in optionalDependencies so npm install doesn't fail on systems without build tools — sql.js is used as fallback at runtime",
+  "customBuild": true,
+  "customUpdateCommand": "npm run update:custom",
   "comment_aws_sdk_credential_providers": "kept in optionalDependencies (npm still installs these by default) and imported lazily in shared/awsCredentials.js — only AWS Bedrock connections using profile/SSO mode need it; static accessKeyId/secretAccessKey connections never load it",
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",

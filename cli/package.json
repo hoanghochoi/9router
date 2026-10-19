@@ -2,6 +2,8 @@
   "name": "9router",
   "version": "0.5.104-3h.1",
   "description": "9Router CLI - Start and manage 9Router server",
+  "customBuild": true,
+  "customUpdateCommand": "npm run update:custom",
   "bin": {
     "9router": "./cli.js"
   },

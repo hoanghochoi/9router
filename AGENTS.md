@@ -31,6 +31,14 @@ npm run cli:pack       # build + npm pack from root
 cd cli && npm run dev  # nodemon watch
 ```
 
+Custom `3h-9router` build updates (preserves model blocks and pools):
+```bash
+npm run update:custom                 # fetch/merge upstream, test, build the custom tarball
+npm run update:custom -- --install    # also install it on this machine
+npm run update:custom -- --remote mementoamoris  # build here, then backup/install/restart remotely
+```
+Do not use `npm i -g 9router@latest` on a custom build; it replaces the custom routing code.
+
 Tests (vitest, in `tests/`, an **independent** ESM package — not wired into root `npm test`):
 ```bash
 npm install                             # ROOT deps first — tests import from src/ which needs `open`, `undici`, etc.
