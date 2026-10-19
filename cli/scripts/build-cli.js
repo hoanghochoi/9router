@@ -336,12 +336,27 @@ function buildCliPackage() {
   console.log(`📁 Output: ${cliAppDir}`);
 
   try {
-    const { execSync: exec } = require("child_process");
-    const size = exec(`du -sh "${cliAppDir}"`, { encoding: "utf8" }).trim();
-    console.log(`📊 Package size: ${size.split("\t")[0]}`);
+    const sizeBytes = fs.readdirSync(cliAppDir, { withFileTypes: true }).reduce((total, entry) => {
+      const entryPath = path.join(cliAppDir, entry.name);
+      if (entry.isDirectory()) return total + getDirectorySize(entryPath);
+      return total + fs.statSync(entryPath).size;
+    }, 0);
+    console.log(`📊 Package size: ${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`);
   } catch (e) {
     // Silent fail on size check
   }
+}
+
+function getDirectorySize(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).reduce((total, entry) => {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) return total + getDirectorySize(entryPath);
+    try {
+      return total + fs.statSync(entryPath).size;
+    } catch {
+      return total;
+    }
+  }, 0);
 }
 
 module.exports = {
