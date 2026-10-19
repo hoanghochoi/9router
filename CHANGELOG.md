@@ -1,3 +1,9 @@
+# v0.5.104-3h.1 (2026-10-19)
+
+- Restore persistent per-account model blocks, wildcard rules, and model/plan account pools on top of upstream 0.5.104.
+- Keep the dashboard controls and add routing regression tests for blocked accounts, pinned accounts, cooldowns, and pool fallback.
+- Custom builds must be updated from branch `3h-9router`; installing the public `9router` npm package replaces these customizations.
+
 # v0.5.104 (2026-10-15)
 
 ## Features
