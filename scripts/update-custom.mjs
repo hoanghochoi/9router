@@ -39,6 +39,15 @@ function writeJson(path, data) {
   writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`);
 }
 
+function updatePackageMetadata(path, version) {
+  const packageData = readJson(path);
+  const before = JSON.stringify(packageData);
+  packageData.version = version;
+  packageData.customBuild = true;
+  packageData.customUpdateCommand = "npm run update:custom";
+  if (JSON.stringify(packageData) !== before) writeJson(path, packageData);
+}
+
 function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
@@ -101,20 +110,12 @@ try {
   const customVersion = `${upstreamVersion}-3h.1`;
   const rootPackagePath = join(root, "package.json");
   const cliPackagePath = join(root, "cli", "package.json");
-  const rootPackage = readJson(rootPackagePath);
-  const cliPackage = readJson(cliPackagePath);
-  rootPackage.version = customVersion;
-  rootPackage.customBuild = true;
-  rootPackage.customUpdateCommand = "npm run update:custom";
-  cliPackage.version = customVersion;
-  cliPackage.customBuild = true;
-  cliPackage.customUpdateCommand = "npm run update:custom";
-  writeJson(rootPackagePath, rootPackage);
-  writeJson(cliPackagePath, cliPackage);
+  updatePackageMetadata(rootPackagePath, customVersion);
+  updatePackageMetadata(cliPackagePath, customVersion);
 
   if (!skipTests) {
     if (!existsSync(join(root, "tests", "node_modules", ".bin", "vitest"))) {
-      run(process.platform === "win32" ? "npm.cmd" : "npm", ["--prefix", "tests", "install", "--legacy-peer-deps", "--no-audit", "--no-fund"]);
+      run(process.platform === "win32" ? "npm.cmd" : "npm", ["--prefix", "tests", "install", "--legacy-peer-deps", "--no-audit", "--no-fund"], { shell: process.platform === "win32" });
     }
     run(join(root, "tests", "node_modules", ".bin", process.platform === "win32" ? "vitest.cmd" : "vitest"), [
       "run",
@@ -125,9 +126,9 @@ try {
   }
 
   run("git", ["diff", "--check", "HEAD"]);
-  run(process.platform === "win32" ? "npm.cmd" : "npm", ["install", "--no-audit", "--no-fund"]);
-  run(process.platform === "win32" ? "npm.cmd" : "npm", ["--prefix", "cli", "install", "--no-audit", "--no-fund"]);
-  run(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "cli:pack"]);
+  run(process.platform === "win32" ? "npm.cmd" : "npm", ["install", "--no-audit", "--no-fund"], { shell: process.platform === "win32" });
+  run(process.platform === "win32" ? "npm.cmd" : "npm", ["--prefix", "cli", "install", "--no-audit", "--no-fund"], { shell: process.platform === "win32" });
+  run(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "cli:pack"], { shell: process.platform === "win32" });
 
   const artifact = join(root, `9router-${customVersion}.tgz`);
   if (!existsSync(artifact)) fail(`Build did not produce ${basename(artifact)}`);
@@ -147,7 +148,7 @@ try {
   mergeStarted = false;
 
   if (install) {
-    run(process.platform === "win32" ? "npm.cmd" : "npm", ["install", "--global", artifact, "--no-audit", "--no-fund"]);
+    run(process.platform === "win32" ? "npm.cmd" : "npm", ["install", "--global", artifact, "--no-audit", "--no-fund"], { shell: process.platform === "win32" });
   }
 
   if (remote) {
